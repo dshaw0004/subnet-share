@@ -1955,21 +1955,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lan-app"
-version = "0.1.0"
-dependencies = [
- "lan-core",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-process",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
 name = "lan-core"
 version = "0.1.0"
 dependencies = [
@@ -3721,6 +3706,21 @@ name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
+
+[[package]]
+name = "subnet-share"
+version = "0.1.0"
+dependencies = [
+ "lan-core",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-process",
+ "tokio",
+ "tokio-util",
+]
 
 [[package]]
 name = "subtle"
