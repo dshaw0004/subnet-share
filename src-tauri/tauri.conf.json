@@ -1,0 +1,17 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Subnet Share",
+  "version": "0.1.0",
+  "identifier": "dev.subnetshare.app",
+  "build": {
+    "beforeDevCommand": "npm run dev -w ui/owner",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "npm run build -w ui/owner",
+    "frontendDist": "../ui/owner/dist"
+  },
+  "app": {
+    "windows": [{ "label": "main", "title": "Subnet Share", "width": 520, "height": 640 }],
+    "security": { "csp": null }
+  },
+  "bundle": { "active": true, "targets": "all", "icon": ["icons/icon.png"] }
+}

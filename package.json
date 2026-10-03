@@ -1,0 +1,10 @@
+{
+  "name": "subnet-share",
+  "private": true,
+  "workspaces": ["ui/owner"],
+  "scripts": {
+    "dev": "node dev.mjs",
+    "build": "tauri build"
+  },
+  "devDependencies": { "@tauri-apps/cli": "^2" }
+}

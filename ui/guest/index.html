@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shared files</title>
+<style>
+:root{--bg:#fff;--fg:#1c1f24;--mut:#6b7280;--card:#f3f4f6;--bd:#e5e7eb;--ac:#2563eb}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1115;--fg:#e6e8eb;--mut:#9aa0a6;--card:#181b21;--bd:#2a2e36;--ac:#6ea0ff}}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.4 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+header{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--bd);padding:.6rem 1rem;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;z-index:2}
+nav{flex:1 1 100%;color:var(--mut);overflow-x:auto;white-space:nowrap}
+nav a{color:var(--ac);text-decoration:none}
+input,select,button,.btn{font:inherit;color:inherit;background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:.35rem .6rem;text-decoration:none;cursor:pointer}
+input{flex:1 1 140px;cursor:text}
+main{padding:1rem}
+.list{display:flex;flex-direction:column;gap:2px}
+.list .it{display:flex;align-items:center;gap:.7rem;padding:.45rem .6rem;border-radius:6px}
+.list .th{width:40px;height:40px;flex:none}
+.list .meta{margin-left:auto;color:var(--mut);font-size:.85em;white-space:nowrap;display:flex;gap:1rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.7rem}
+.grid .it{background:var(--card);border-radius:8px;padding:.5rem;display:flex;flex-direction:column;gap:.4rem}
+.grid .th{width:100%;aspect-ratio:1}
+.grid .meta{color:var(--mut);font-size:.8em;display:flex;justify-content:space-between}
+.it{position:relative;color:inherit;text-decoration:none}
+.it:hover{background:var(--card)}
+.th{display:grid;place-items:center;font-size:1.8em;background:var(--card);border-radius:6px;overflow:hidden}
+.th img{width:100%;height:100%;object-fit:cover}
+.nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dlb{position:absolute;top:.3rem;right:.3rem;padding:.1rem .45rem;opacity:0;text-decoration:none}
+.it:hover .dlb,.it:focus-within .dlb{opacity:1}
+.list .dlb{position:static;opacity:1;padding:.1rem .45rem}
+.msg{color:var(--mut);padding:2rem;text-align:center}
+#pv{position:fixed;inset:0;background:#000d;display:none;flex-direction:column;z-index:5}
+#pv.on{display:flex}
+#pv .bar{display:flex;gap:.5rem;align-items:center;padding:.6rem 1rem;color:#fff}
+#pv .bar b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pv .bd{flex:1;display:grid;place-items:center;overflow:auto;padding:0 1rem 1rem}
+#pv img,#pv video{max-width:100%;max-height:100%}
+#pv pre{margin:0;max-width:100%;color:#e6e8eb;white-space:pre-wrap;word-break:break-word;align-self:start}
+</style>
+</head>
+<body>
+<header>
+  <nav id="crumbs"></nav>
+  <input id="q" type="search" placeholder="Search…" autocomplete="off">
+  <select id="sort">
+    <option value="name">Name</option><option value="size">Size</option><option value="modified">Modified</option>
+  </select>
+  <button id="dir" title="Toggle order">↑</button>
+  <button id="view" title="Grid / list">▦</button>
+  <a id="all" class="btn" href="?zip">Download all</a>
+</header>
+<main id="main"><div class="msg">Loading…</div></main>
+<div id="pv"><div class="bar"><b id="pvn"></b><a id="pvd" class="btn">Download</a><button id="pvx">✕</button></div><div class="bd" id="pvb"></div></div>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const base=location.pathname.replace(/\/*$/,"/");
+const KIND={img:"png jpg jpeg gif webp svg avif bmp",vid:"mp4 webm ogv mov",aud:"mp3 wav ogg m4a flac",txt:"txt md json log csv xml yml yaml toml ini js ts css html rs py go java c h cpp sh"};
+const kind=n=>{const e=n.split(".").pop().toLowerCase();for(const k in KIND)if(KIND[k].split(" ").includes(e))return k;return""};
+const url=(n,q="")=>base+encodeURIComponent(n)+q;
+const fmtSize=b=>{if(!b)return"";const u=["B","KB","MB","GB","TB"];let i=0;while(b>=1024&&i<4){b/=1024;i++}return(i?b.toFixed(1):b)+" "+u[i]};
+const fmtDate=s=>s?new Date(s*1000).toLocaleDateString():"";
+const store={get:k=>{try{return localStorage.getItem(k)}catch{return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}}};
+let entries=[],asc=true,mode=store.get("view")||"grid",shown=[];
+
+function crumbs(path){
+  const nav=$("crumbs");nav.textContent="";
+  let href="/share/";
+  const add=(label,h)=>{const a=document.createElement("a");a.textContent=label;a.href=h;nav.append(a)};
+  add("Shared",href);
+  path.split("/").filter(Boolean).forEach(p=>{href+=encodeURIComponent(p)+"/";nav.append(" / ");add(p,href)});
+}
+
+function thumb(e){
+  const t=document.createElement("div");t.className="th";
+  if(!e.dir&&kind(e.name)==="img"){const i=document.createElement("img");i.loading="lazy";i.src=url(e.name);t.append(i)}
+  else t.textContent=e.dir?"📁":{vid:"🎞",aud:"🎵",txt:"📄"}[kind(e.name)]||"📦";
+  return t;
+}
+
+function render(){
+  const q=$("q").value.trim().toLowerCase(),key=$("sort").value;
+  shown=entries.filter(e=>e.name.toLowerCase().includes(q)).sort((a,b)=>{
+    if(a.dir!==b.dir)return a.dir?-1:1;
+    const r=key==="name"?a.name.localeCompare(b.name,undefined,{numeric:true}):a[key]-b[key];
+    return asc?r:-r;
+  });
+  const m=$("main");m.textContent="";
+  if(!shown.length){m.innerHTML='<div class="msg"></div>';m.firstChild.textContent=entries.length?"No matches":"This folder is empty";return}
+  const box=document.createElement("div");box.className=mode;
+  shown.forEach((e,i)=>{
+    const a=document.createElement("a");a.className="it";a.title=e.name;
+    a.href=e.dir?url(e.name)+"/":url(e.name);
+    if(!e.dir&&kind(e.name)){a.onclick=ev=>{ev.preventDefault();preview(i)}}
+    const nm=document.createElement("div");nm.className="nm";nm.textContent=e.name;
+    const meta=document.createElement("div");meta.className="meta";
+    const s=document.createElement("span");s.textContent=e.dir?"":fmtSize(e.size);
+    meta.append(s);
+    if(mode==="list"){const d=document.createElement("span");d.textContent=fmtDate(e.modified);meta.append(d)}
+    const dl=document.createElement("a");dl.className="btn dlb";dl.textContent="⬇";dl.title=e.dir?"Download as ZIP":"Download";
+    dl.href=url(e.name,e.dir?"?zip":"?dl");dl.onclick=ev=>ev.stopPropagation();
+    a.append(thumb(e),nm,meta,dl);box.append(a);
+  });
+  m.append(box);
+}
+
+let cur=-1;
+async function preview(i){
+  const list=shown;if(i<0||i>=list.length)return;
+  const e=list[i];if(e.dir){return}
+  cur=i;const k=kind(e.name),b=$("pvb");
+  $("pvn").textContent=e.name;$("pvd").href=url(e.name,"?dl");b.textContent="";
+  $("pv").classList.add("on");
+  if(k==="img"){const x=document.createElement("img");x.src=url(e.name);b.append(x)}
+  else if(k==="vid"||k==="aud"){const x=document.createElement(k==="vid"?"video":"audio");x.controls=true;x.autoplay=true;x.src=url(e.name);b.append(x)}
+  else if(k==="txt"){
+    const p=document.createElement("pre");p.textContent="Loading…";b.append(p);
+    try{const r=await fetch(url(e.name),{headers:{Range:"bytes=0-204799"}});p.textContent=await r.text();if(e.size>204800)p.textContent+="\n\n… truncated, download for full file"}
+    catch{p.textContent="Preview failed"}
+  }
+}
+const step=d=>{let i=cur+d;while(i>=0&&i<shown.length){if(!shown[i].dir&&kind(shown[i].name)){preview(i);return}i+=d}};
+const closePv=()=>{$("pv").classList.remove("on");$("pvb").textContent="";cur=-1};
+$("pvx").onclick=closePv;
+document.onkeydown=e=>{if(cur<0)return;if(e.key==="Escape")closePv();if(e.key==="ArrowRight")step(1);if(e.key==="ArrowLeft")step(-1)};
+
+$("q").oninput=render;$("sort").onchange=render;
+$("dir").onclick=()=>{asc=!asc;$("dir").textContent=asc?"↑":"↓";render()};
+$("view").onclick=()=>{mode=mode==="grid"?"list":"grid";store.set("view",mode);render()};
+
+(async()=>{
+  try{
+    const r=await fetch(base+"?json");
+    if(r.status===401||r.status===403){$("main").innerHTML='<div class="msg"></div>';$("main").firstChild.textContent="Access denied. Open the share link you were given.";return}
+    if(!r.ok)throw 0;
+    const d=await r.json();entries=d.entries;crumbs(d.path);render();
+  }catch{$("main").innerHTML='<div class="msg"></div>';$("main").firstChild.textContent="Could not load this folder."}
+})();
+</script>
+</body>
+</html>

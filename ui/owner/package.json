@@ -1,0 +1,13 @@
+{
+  "name": "owner",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "vite", "build": "vue-tsc --noEmit && vite build" },
+  "dependencies": {
+    "vue": "^3.5.0",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2",
+    "@tauri-apps/plugin-process": "^2"
+  },
+  "devDependencies": { "@vitejs/plugin-vue": "^5", "typescript": "^5", "vite": "^6", "vue-tsc": "^2" }
+}

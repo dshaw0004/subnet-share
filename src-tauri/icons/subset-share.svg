@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Flat Background (Slate 800) -->
+  <rect width="512" height="512" rx="100" fill="#1E293B" />
+
+  <!-- Flat 2D Folder (Slate 600) -->
+  <!-- Folder Back/Tab -->
+  <path d="M 120 160 L 240 160 L 270 190 L 400 190 L 400 360 L 120 360 Z" fill="#475569" />
+  <!-- Folder Front Face -->
+  <path d="M 100 200 L 420 200 L 420 380 L 100 380 Z" fill="#334155" />
+
+  <!-- Flat Network Nodes (Muted Teal Accent) -->
+  <!-- Connecting Lines -->
+  <line x1="340" y1="140" x2="280" y2="200" stroke="#2DD4BF" stroke-width="16" stroke-linecap="round" />
+  <line x1="340" y1="140" x2="340" y2="220" stroke="#2DD4BF" stroke-width="16" stroke-linecap="round" />
+  
+  <!-- Nodes (Dots) -->
+  <circle cx="340" cy="140" r="24" fill="#2DD4BF" />
+  <circle cx="280" cy="200" r="16" fill="#2DD4BF" />
+  <circle cx="340" cy="220" r="16" fill="#2DD4BF" />
+</svg>

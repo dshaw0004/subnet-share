@@ -1,0 +1,37 @@
+# LAN app: v1 spec (final)
+
+**Scope**
+- Native app for Windows and Linux. LAN only, fully offline.
+- Target: small offices with flat networks and open ports.
+- Out of v1: VLAN/subnet handling, sniffing protection, link expiry, HTTPS, push transfer, phone client, native UI.
+
+**Architecture**
+- Tauri shell (webview UI) over a standalone core crate that owns discovery, the HTTP server, and transfers. The UI talks to the core over IPC, with no localhost control API.
+- Tray app. Closing the window destroys the webview and the core keeps running.
+- Native file and folder pickers.
+- **One listening port** (default plus fallback range, configurable) serves both the file server and the offer inbox, with strictly separate routes:
+  - `/share/...` is token-gated and returns 404 when no share is active.
+  - `/inbox` accepts only small offer metadata, is rate-limited, and never serves files.
+- Discovery via mDNS/DNS-SD, advertising the device name and port. If a peer isn't found, the fallback is sharing the scoped link or IP manually.
+- Interface picker defaults to the default-route interface, to avoid Docker/WSL/VPN adapters.
+
+**Mode 1: File Server**
+- Owner picks a folder, and the app serves it read-only.
+- Token per share session: `?t=` is exchanged for a cookie and redirected to a clean URL. Regenerate and stop sharing are in the owner UI.
+- Open mode is an explicit toggle with a warning, and reverts to protected on restart.
+- Server: canonicalized paths, no symlink escape, hidden files off by default, range requests, streaming, folder-as-ZIP.
+- Guest page: embedded static page with no CDN, JSON listing, grid/list, search, sort, preview, download all. It's separate from the owner UI.
+- Owner UI shows the URL, QR code, and IP picker.
+
+**Mode 2: p2p transfer (pull)**
+- Sender picks files, which creates a scoped share plus an offer manifest (names, sizes, optional hash, URL, token).
+- The offer is broadcast to every discovered peer's inbox with short timeouts for dead peers.
+- Receiver gets a non-blocking toast (Accept/Ignore) plus an inbox list. Prompts show device name and IP.
+- Accepted offers download to a default save folder with range-based resume. Multiple receivers can download at once.
+- **Filename conflicts:** ask the receiver, otherwise let the OS handle it.
+- **Hashes:** the sender chooses whether to include one. If present, the receiver can optionally verify at the end of the transfer. If absent, show a small "file hash not present" warning.
+- Sender sees per-receiver status. Cancel propagates to all inboxes. Quitting during active transfers triggers a warning.
+- **Mute all:** offers queue silently with an inbox badge, the sender sees "muted," and the state persists with a tray indicator.
+
+**Deferred to later versions**
+Push transfer, per-sender mute, timed mute, expiry, access log, per-guest revoke, VLAN support, HTTPS, phone client, native UI.

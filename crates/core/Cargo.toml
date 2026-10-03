@@ -1,0 +1,30 @@
+[package]
+name = "lan-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = { version = "0.8", features = ["macros"] }
+tokio = { version = "1", features = ["full"] }
+tower = { version = "0.5", features = ["util"] }
+tower-http = { version = "0.6", features = ["fs"] }
+tokio-stream = { version = "0.1", features = ["net"] }
+percent-encoding = "2"
+zip = { version = "2", default-features = false }
+mdns-sd = "0.13"
+netdev = "0.46"
+rust-embed = { version = "8", features = ["include-exclude"] }
+qrcode = "0.14"
+blake3 = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rand = "0.8"
+thiserror = "2"
+tracing = "0.1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
+url = "2"
+urlencoding = "2"
+hostname = "0.4"
+tokio-util = { version = "0.7", features = ["rt"] }
+futures-util = "0.3"
+bytes = "1"
