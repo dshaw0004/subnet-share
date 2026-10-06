@@ -208,6 +208,15 @@ impl AppState {
 
     pub async fn set_muted(&self, on: bool) {
         *self.muted.write().await = on;
+        // When unmuting, promote all queued-pending offers so they surface as toasts.
+        if !on {
+            let mut inbox = self.inbox.lock().await;
+            for entry in inbox.iter_mut() {
+                if entry.queued && entry.status == InboxStatus::Pending {
+                    entry.queued = false;
+                }
+            }
+        }
         self.config.save(on);
     }
 

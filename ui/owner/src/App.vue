@@ -84,10 +84,18 @@ const refreshMode2 = async () => {
   outbox.value = (await run(api.getOutbox)) ?? outbox.value
   const newInbox = (await run(api.getInbox)) ?? inbox.value
 
-  // Find newly arrived pending items to promote to toasts
-  const existingIds = new Set(inbox.value.map(e => e.offer.id))
+  // Find newly arrived pending items to promote to toasts.
+  // Also catch offers that were queued (arrived while muted) and are now promoted.
+  const existingMap = new Map(inbox.value.map(e => [e.offer.id, e]))
+  const toastIds = new Set(toasts.value.map(t => t.offer.id))
+
   for (const e of newInbox) {
-    if (!existingIds.has(e.offer.id) && e.status === 'pending' && !e.queued) {
+    if (toastIds.has(e.offer.id)) continue        // already toasted
+    if (e.status !== 'pending') continue           // not actionable
+    const prev = existingMap.get(e.offer.id)
+    const isNew = !prev                            // brand-new offer
+    const wasPromoted = prev?.queued && !e.queued  // was queued, now unqueued
+    if (isNew || wasPromoted) {
       toasts.value.push(e)
     }
   }
@@ -195,6 +203,8 @@ async function cancelReceive(offerId: string) {
 async function toggleMute() {
   await run(() => api.setMuted(!muted.value))
   await refresh()
+  // Refresh inbox so offers promoted by unmute surface as toasts immediately.
+  await refreshMode2()
 }
 
 // ─── Quit guard ───────────────────────────────────────────────────────────

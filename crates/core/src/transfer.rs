@@ -118,7 +118,7 @@ pub async fn accept_offer(
         }
 
         let file_url = format!(
-            "{}/{}&dl",
+            "{}/{}?dl",
             offer.url.trim_end_matches('/'),
             urlencoding::encode(&file.name)
         );
