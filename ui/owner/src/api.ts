@@ -62,12 +62,12 @@ export const api = {
   // Mode 2
   getPeers: () => invoke<Peer[]>('get_peers'),
   sendFiles: (filePaths: string[], includeHashes: boolean) =>
-    invoke<string>('send_files', { file_paths: filePaths, include_hashes: includeHashes }),
+    invoke<string>('send_files', { filePaths, includeHashes }),
   getInbox: () => invoke<InboxOffer[]>('get_inbox'),
   getOutbox: () => invoke<OutboxEntry[]>('get_outbox'),
-  acceptOffer: (offerId: string) => invoke<void>('accept_offer', { offer_id: offerId }),
-  ignoreOffer: (offerId: string) => invoke<void>('ignore_offer', { offer_id: offerId }),
-  cancelSend: (offerId: string) => invoke<void>('cancel_send', { offer_id: offerId }),
-  cancelReceive: (offerId: string) => invoke<void>('cancel_receive', { offer_id: offerId }),
+  acceptOffer: (offerId: string) => invoke<void>('accept_offer', { offerId }),
+  ignoreOffer: (offerId: string) => invoke<void>('ignore_offer', { offerId }),
+  cancelSend: (offerId: string) => invoke<void>('cancel_send', { offerId }),
+  cancelReceive: (offerId: string) => invoke<void>('cancel_receive', { offerId }),
   setMuted: (muted: boolean) => invoke<void>('set_muted', { muted }),
 }
