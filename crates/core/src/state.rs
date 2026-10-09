@@ -129,9 +129,16 @@ fn new_token() -> String {
 
 impl AppState {
     pub fn new(cfg: Arc<crate::config::Config>) -> Self {
+        // Restore the share session that was active when the app was last closed.
+        let initial_session = cfg.initial_share.as_ref().map(|(path, token)| ShareSession {
+            root: path.clone(),
+            token: token.clone(),
+            open_mode: false,   // open_mode is never persisted; always resets to off
+            show_hidden: false,
+        });
         Self {
             device_name: cfg.device_name.clone(),
-            share: RwLock::new(None),
+            share: RwLock::new(initial_session),
             muted: RwLock::new(cfg.muted),
             peers: RwLock::new(Vec::new()),
             inbox: Mutex::new(Vec::new()),
@@ -142,16 +149,21 @@ impl AppState {
 
     // ── Mode 1: share session ──────────────────────────────────────────────
 
-    /// Starts (or replaces) the share. Always begins in protected mode.
+    /// Starts (or replaces) the share with a new token. Returns the token.
     pub async fn start_share(&self, root: PathBuf) -> String {
         let token = new_token();
+        self.start_share_with_token(root, token.clone()).await;
+        token
+    }
+
+    /// Starts (or replaces) the share with a specific token (used for restore on startup).
+    pub async fn start_share_with_token(&self, root: PathBuf, token: String) {
         *self.share.write().await = Some(ShareSession {
             root,
-            token: token.clone(),
+            token,
             open_mode: false,
             show_hidden: false,
         });
-        token
     }
 
     pub async fn stop_share(&self) {

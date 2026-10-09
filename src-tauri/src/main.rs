@@ -59,18 +59,29 @@ async fn start_share(core: State<'_, CoreHandle>, path: String) -> Result<String
     if !PathBuf::from(&path).is_dir() {
         return Err("That is not a folder".into());
     }
-    Ok(core.0.state.start_share(path.into()).await)
+    let token = core.0.state.start_share(path.clone().into()).await;
+    // Persist so the session survives closing the window.
+    core.0.state.config.save_share(std::path::Path::new(&path), &token);
+    Ok(token)
 }
 
 #[tauri::command]
 async fn stop_share(core: State<'_, CoreHandle>) -> Result<(), String> {
     core.0.state.stop_share().await;
+    // Clear persistence so we don't restore a stopped share on next launch.
+    core.0.state.config.clear_share();
     Ok(())
 }
 
 #[tauri::command]
 async fn regenerate_token(core: State<'_, CoreHandle>) -> Result<String, String> {
-    core.0.state.regenerate_token().await.ok_or_else(|| "Not sharing".to_string())
+    let token = core.0.state.regenerate_token().await
+        .ok_or_else(|| "Not sharing".to_string())?;
+    // Update persisted token so restart still uses the new one.
+    if let Some(info) = core.0.state.share_info().await {
+        core.0.state.config.save_share(std::path::Path::new(&info.path), &token);
+    }
+    Ok(token)
 }
 
 #[tauri::command]

@@ -8,6 +8,12 @@ struct Persisted {
     device_name: Option<String>,
     #[serde(default)]
     muted: bool,
+    /// Active share folder path — present while a share session is running.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    share_path: Option<PathBuf>,
+    /// Token for the active share — kept so existing links keep working after restart.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    share_token: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -20,12 +26,18 @@ pub struct Config {
     pub config_path: PathBuf,
     /// Muted state as loaded from disk at startup.
     pub muted: bool,
+    /// Share session to restore at startup (path + token pair, or neither).
+    pub initial_share: Option<(PathBuf, String)>,
 }
 
 impl Default for Config {
     fn default() -> Self {
         let config_path = config_file_path();
         let persisted = load_persisted(&config_path);
+        // Restore share only if the folder still exists on disk.
+        let initial_share = persisted.share_path
+            .zip(persisted.share_token)
+            .filter(|(path, _)| path.is_dir());
         Self {
             device_name: persisted
                 .device_name
@@ -35,6 +47,7 @@ impl Default for Config {
             save_dir: default_save_dir(),
             config_path,
             muted: persisted.muted,
+            initial_share,
         }
     }
 }
@@ -42,7 +55,33 @@ impl Default for Config {
 impl Config {
     /// Persist device_name and muted to disk (best-effort; errors are silently ignored).
     pub fn save(&self, muted: bool) {
-        let p = Persisted { device_name: Some(self.device_name.clone()), muted };
+        let name = self.device_name.clone();
+        self.write(move |p| {
+            p.device_name = Some(name);
+            p.muted = muted;
+        });
+    }
+
+    /// Persist the active share session so it survives a restart.
+    pub fn save_share(&self, path: &std::path::Path, token: &str) {
+        self.write(|p| {
+            p.share_path = Some(path.to_owned());
+            p.share_token = Some(token.to_owned());
+        });
+    }
+
+    /// Clear the persisted share session (called on stop_share).
+    pub fn clear_share(&self) {
+        self.write(|p| {
+            p.share_path = None;
+            p.share_token = None;
+        });
+    }
+
+    /// Read-modify-write the config file (best-effort).
+    fn write(&self, modify: impl FnOnce(&mut Persisted)) {
+        let mut p = load_persisted(&self.config_path);
+        modify(&mut p);
         if let Ok(json) = serde_json::to_string_pretty(&p) {
             if let Some(parent) = self.config_path.parent() {
                 let _ = std::fs::create_dir_all(parent);
